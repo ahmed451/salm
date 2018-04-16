@@ -4,6 +4,7 @@
 #include <string.h>
 #include <iostream>
 #include <fstream>
+#include <sstream>      // std::stringstream, std::stringbuf
 #include <vector>
 
 #include "_String.h"
@@ -12,9 +13,40 @@
 #include <time.h>
 #include <stdio.h>
 #include <map>
+#include <set>
+#include <tuple> 
+
+#include <algorithm> // std::sort
 
 using namespace std;
 
+typedef pair<C_String, double> pairElt;
+
+std::vector<pairElt> SortMap2Vec(map<C_String, double> myMap){
+	// 
+	std::vector<pairElt >::const_iterator itvec;
+	map<C_String, double>::iterator itmap;
+	vector<pair<C_String, double> > order(myMap.size());
+
+	size_t n = 0;
+	for (itmap = myMap.begin(); itmap != myMap.end(); ++itmap, ++n)
+    	order[n] = make_pair((itmap->first).toString(),itmap->second);
+
+
+	//Now you can sort this array using a custom sorter:
+
+	struct ordering {
+    	bool operator ()(pairElt const& a, pairElt const& b) {
+        	return (a.second) > (b.second); // descending order 
+    	}
+	};
+
+
+
+	sort(order.begin(), order.end(), ordering());
+
+	return order;
+}
 
 vector<C_String> convertTextToStringVector(const char * sentText)
 {  
@@ -57,6 +89,58 @@ vector<C_String> convertTextToStringVector(const char * sentText)
     return sentAsStringVect;
 }
 
+/*
+*
+*
+*/
+
+int word_count(string is)  // can pass an open std::ifstream() to this if required
+{
+	int word_count( 0 );
+    stringstream ss( is );
+    string word;
+    while( ss >> word ) ++word_count;
+    return word_count;
+
+}
+
+/**
+*
+* Load Corpus file and build <doc ids, doc names> map
+*
+**/
+map<double, C_String> LoadDocLines(const char * fileName){
+	map<double, C_String> listDocLine; 
+	ifstream textStream;
+	string aLine;
+	double nLine = 0;
+	char * thisToken;
+	char delimit[] =" \t\r\n";
+
+	textStream.open(fileName);
+	if(textStream==NULL){
+		fprintf(stderr,"Corpus file %s does not exist. Exit!\n",fileName);
+		exit(-1);
+	}
+
+	getline(textStream, aLine);
+	while(!textStream.eof()){
+
+		if(aLine.length()>0){
+
+			thisToken = strtok((char*) aLine.c_str(), delimit );
+			//cout<<" Line ["<< nLine<<"]: " <<thisToken << endl;
+			nLine++;
+			listDocLine.insert(make_pair(nLine,thisToken));
+
+
+		}
+		
+		getline(textStream, aLine);
+	}
+	//textStream.close();
+	return listDocLine;
+}
 /**
 * \ingroup search
 *
@@ -74,7 +158,7 @@ int main(int argc, char* argv[]){
 	if(argc<2){		
 		fprintf(stderr,"\nOutput the matched n-gram types a testing data set given an indexed corpus\n");
 		fprintf(stderr,"\nUsage:\n");
-		fprintf(stderr,"\n%s corpusFileNameStem < testing data\n\n",argv[0]);
+		fprintf(stderr,"\n%s corpusFileNameStem verbosity < testing data\n\n",argv[0]);
 		
 		exit(0);
 	}
@@ -86,20 +170,37 @@ int main(int argc, char* argv[]){
 	
 	map<C_String, double> matchedNgrams;
 	map<C_String, double>::iterator iterMatchedNgrams;
+	map<double, C_String> line2Doc;
+	map<double, C_String>::iterator iterline2Doc;
 
+
+	map<C_String, double> FoundFreq;
+	map<C_String, double>::iterator iterFoundFreq;
 
 	int maxSentLen = 4086;
 
+	int verbosity = 0;
 
 	char fileName[1000];
 	char tmpString[10000];
 
+	C_String l_ngram;
+	double l_frequency;
+
 	strcpy(fileName, argv[1]);
+
+	if(argc>2)
+		if(atoi(argv[2])>0)
+			verbosity = 1;
+		
 	
 	fprintf(stderr,"Loading data...\n");
-	SA.loadData_forSearch(fileName, false, true);
+	SA.loadData_forSearch(fileName, false, false); //true
 
-	cerr<<"Input sentences:\n";
+	line2Doc = LoadDocLines(fileName);
+
+	if(verbosity)
+		cout <<"Input sentences:\n";
 
 	long ltime1, ltime2;
 
@@ -107,23 +208,28 @@ int main(int argc, char* argv[]){
 
 	int totalSentences = 0;
 	int matchedSentences = 0;
+
 	while(!cin.eof()){
 		cin.getline(tmpString,10000,'\n');
 
-		if(strlen(tmpString)>0){
+		if(strlen(tmpString)>0) {
 			vector<C_String> sentAsStringVector = convertTextToStringVector(tmpString);
 			
 			int sentLen;
+			int CurrStart = 0;
+			int DiffLen = 0;
+
+
 			S_sentSearchTableElement * freqTable = SA.constructNgramSearchTable4SentWithLCP(tmpString, sentLen);
-		  
+		  	
 			if(sentLen!=sentAsStringVector.size()){
 				cerr<<"Something wrong, can not proceed.!\n";
 				exit(-1);
 			}
-			
-
+			if(verbosity)
+				cout << "\nProcessing :" << tmpString << endl;
 			//go over the frequency table
-			for(int startPos = 0; startPos<sentLen; startPos++){
+			for(int startPos = 0; startPos<=sentLen; startPos++){
 				C_String ngram;
 				bool stillMatching = true;
 				int n=1;
@@ -141,7 +247,12 @@ int main(int argc, char* argv[]){
 						}
 						else{
 							matchedNgrams.insert(make_pair(ngram, frequency));
-						}
+							//cout<<"M: "<<ngram.toString()<<","<< frequency<< ","<< n <<","<< (sentLen-startPos)<< ", "<<stillMatching <<endl;
+							//if(startPos == 0) {
+								l_ngram = ngram;
+								l_frequency = frequency;
+							}
+							//}
 					}
 					else{
 						stillMatching = false;
@@ -152,19 +263,99 @@ int main(int argc, char* argv[]){
 
 					n++;
 				}
+
+				//if((CurrStart <=startPos &&((sentLen-startPos)>=DiffLen)) || CurrStart == 0) {
+					
+					std::vector<S_phraseLocationElement>::const_iterator i;
+					//for(i=SA.findPhrasesInASentence(l_ngram.toString()).begin(); i!=SA.findPhrasesInASentence(l_ngram.toString()).begin(); ++i)
+					//	cout<< "POS:" << i->sentIdInCorpus <<endl;
+					//vector<C_String> sentAsCStringVector = SA.convertCharStringToCStringVector(l_ngram.toString());	//for later display purpose
+				
+				
+					vector<S_phraseLocationElement> locations;
+					locations = SA.findPhrasesInASentence(l_ngram.toString());
+					int start =(int)locations[locations.size()-1].posStartInSrcSent;
+					int end   = (int)locations[locations.size()-1].posEndInSrcSent;
+					int selID = locations.size()-1;
+					CurrStart = startPos+(int)(locations[locations.size()-1].posEndInSrcSent);
+					// for(int i=locations.size()-1;i>0; --i){
+					// 	if(start>((int)locations[i].posStartInSrcSent) && end < (int)locations[i].posEndInSrcSent){
+					// 		start = (int)locations[i].posStartInSrcSent;
+					// 		end   = (int)locations[i].posEndInSrcSent;
+					// 		CurrStart = startPos+(int)(locations[i].posEndInSrcSent);
+					// 		selID = i;
+					// 	} 
+
+						
+					// 	// if(start > (int)locations[i].posEndInSrcSent) {
+					// 	// 	cout<<"P-gram ["<<(int)locations[i].posStartInSrcSent<<", "<<(int)locations[i].posEndInSrcSent<<"]: ";
+					// 	// 	cout<<" found in corpus: ";
+					// 	// 	cout<<"SentId="<<locations[i].sentIdInCorpus<<" Pos="<<(int)locations[i].posInSentInCorpus << endl;
+					// 	// }
+					// 	start = (int)locations[i].posEndInSrcSent;
+					// 	CurrStart = startPos+(int)(locations[i].posEndInSrcSent);
+					// }
+					//S_phraseLocationElement& elt = SA.findPhrasesInASentence(l_ngram.toString())[0];
+					// cout <<" POS:"     << elt.sentIdInCorpus ;
+					// cout <<" , Start:" << (int)(elt.posStartInSrcSent) ;
+					// cout <<" , End  :" << (int)(elt.posEndInSrcSent) ;
+					// cout <<" , InSent:" <<(int)(elt.posInSentInCorpus)<< endl;
+					//CurrStart = startPos+(int)(elt.posEndInSrcSent);
+					DiffLen = (sentLen-startPos);
+					//cout<<" N-gram ["<<(int)locations[selID].posStartInSrcSent<<", "<<(int)locations[selID].posEndInSrcSent<<"]: ";
+					//cout<<" found in corpus: ";
+					//cout<<"SentId="<<locations[selID].sentIdInCorpus<<" Doc Name:";
+					//cout <<l_ngram.toString()<<" ["<< word_count(l_ngram.toString()) << ", "<< l_frequency << ", "; //", n:"<< n <<", Len:"<< sentLen<< ", Strt:"<< startPos<< ", Diff:"<<(sentLen-startPos)<< ", Flag:"<<CurrStart<< endl;
+					iterline2Doc = line2Doc.find(locations[selID].sentIdInCorpus);
+					if(verbosity) {
+						cout <<l_ngram.toString()<<" ["<< word_count(l_ngram.toString()) << ", "<< l_frequency << ", n:"<< n <<", Len:"<< sentLen<< ", Strt:"<< startPos<< ", Diff:"<<(sentLen-startPos)<< ", Flag:"<<CurrStart<< " "; // << endl;
+						cout << (int)locations[selID].posInSentInCorpus << ", ";
+						cout << (iterline2Doc->second).toString() << "]" << endl;
+					}
+					
+					
+					
+					startPos = startPos+((int)locations[selID].posEndInSrcSent-(int)locations[selID].posStartInSrcSent);
+		
+					if(FoundFreq.end() == FoundFreq.find((iterline2Doc->second).toString()))
+								{
+									FoundFreq.insert(make_pair((iterline2Doc->second).toString(), word_count(l_ngram.toString())));
+								}
+					else
+						FoundFreq.find((iterline2Doc->second))->second += word_count(l_ngram.toString());
+				//}
+				//CurrStart = 
+				
 			}
 
-		}
+			
+		} // if(strlen(tmpString)>0)
 
 		tmpString[0]=0;
-		
-	}
 
+		
+		
+	} // While
+ 
+	std::vector<std::pair<C_String, double> > items;
+	//...
+	
+	items = SortMap2Vec(FoundFreq);
+
+	std::vector<std::pair<C_String,double> >::const_iterator it;
+
+	for(it=items.begin(); it!=items.end(); ++it)
+		cout << "Document[" <<(it->first).toString()  <<"] = " <<   it->second << endl;
+
+
+
+	return 1;
+	cout<<"SSS: "<<l_ngram.toString()<<","<< l_frequency<<endl;
 
 	//now output all the n-grams
 	iterMatchedNgrams = matchedNgrams.begin();
 	while(iterMatchedNgrams != matchedNgrams.end()){
-		cout<<(iterMatchedNgrams->first).toString()<<endl;
+		cout<<(iterMatchedNgrams->first).toString()<<","<< iterMatchedNgrams->second<<endl;
 
 		iterMatchedNgrams++;
 	}

@@ -103,13 +103,14 @@ allO64 :	CREATE_DIR	\
 	${SA_SEARCH_BIN_DIR}/NgramMatchingFreqAndNonCompositionality4Sent.O64	\
 	${SA_SEARCH_BIN_DIR}/LocateNgramInCorpus.O64	\
 	${SA_SEARCH_BIN_DIR}/LocateEmbeddedNgramsInCorpus.O64	\
-	${SA_SEARCH_BIN_DIR}/SampleNGramIns.O64	\
 	${SA_SCAN_BIN_DIR}/CalcCountOfCounts.O64	\
 	${SA_SCAN_BIN_DIR}/OutputHighFreqNgram.O64	\
 	${SA_SCAN_BIN_DIR}/TypeTokenFreqInCorpus.O64	\
 	${SA_LM_BIN_DIR}/EvaluateLM.O64	\
 	${SA_UTIL_BIN_DIR}/InitializeVocabulary.O64	\
 	${SA_UTIL_BIN_DIR}/UpdateUniversalVoc.O64
+
+#	${SA_SEARCH_BIN_DIR}/SampleNGramIns.O64	\
 
 # Target to create the directory hierarchy needed
 CREATE_DIR :
