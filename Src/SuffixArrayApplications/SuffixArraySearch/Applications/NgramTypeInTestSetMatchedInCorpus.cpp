@@ -22,6 +22,7 @@ using namespace std;
 
 typedef pair<C_String, double> pairElt;
 
+// Convert Map to Vec and Sort by value AAA
 std::vector<pairElt> SortMap2Vec(map<C_String, double> myMap){
 	// 
 	std::vector<pairElt >::const_iterator itvec;
@@ -41,12 +42,11 @@ std::vector<pairElt> SortMap2Vec(map<C_String, double> myMap){
     	}
 	};
 
-
-
 	sort(order.begin(), order.end(), ordering());
 
 	return order;
 }
+
 
 vector<C_String> convertTextToStringVector(const char * sentText)
 {  
@@ -217,8 +217,6 @@ int main(int argc, char* argv[]){
 			
 			int sentLen;
 			int CurrStart = 0;
-			int DiffLen = 0;
-
 
 			S_sentSearchTableElement * freqTable = SA.constructNgramSearchTable4SentWithLCP(tmpString, sentLen);
 		  	
@@ -264,13 +262,10 @@ int main(int argc, char* argv[]){
 					n++;
 				}
 
-				//if((CurrStart <=startPos &&((sentLen-startPos)>=DiffLen)) || CurrStart == 0) {
-					
+					//
+					// Get sentIDs and Document names AAA Tue Apr 10 08:30:34 2018
+					// 
 					std::vector<S_phraseLocationElement>::const_iterator i;
-					//for(i=SA.findPhrasesInASentence(l_ngram.toString()).begin(); i!=SA.findPhrasesInASentence(l_ngram.toString()).begin(); ++i)
-					//	cout<< "POS:" << i->sentIdInCorpus <<endl;
-					//vector<C_String> sentAsCStringVector = SA.convertCharStringToCStringVector(l_ngram.toString());	//for later display purpose
-				
 				
 					vector<S_phraseLocationElement> locations;
 					locations = SA.findPhrasesInASentence(l_ngram.toString());
@@ -278,34 +273,7 @@ int main(int argc, char* argv[]){
 					int end   = (int)locations[locations.size()-1].posEndInSrcSent;
 					int selID = locations.size()-1;
 					CurrStart = startPos+(int)(locations[locations.size()-1].posEndInSrcSent);
-					// for(int i=locations.size()-1;i>0; --i){
-					// 	if(start>((int)locations[i].posStartInSrcSent) && end < (int)locations[i].posEndInSrcSent){
-					// 		start = (int)locations[i].posStartInSrcSent;
-					// 		end   = (int)locations[i].posEndInSrcSent;
-					// 		CurrStart = startPos+(int)(locations[i].posEndInSrcSent);
-					// 		selID = i;
-					// 	} 
 
-						
-					// 	// if(start > (int)locations[i].posEndInSrcSent) {
-					// 	// 	cout<<"P-gram ["<<(int)locations[i].posStartInSrcSent<<", "<<(int)locations[i].posEndInSrcSent<<"]: ";
-					// 	// 	cout<<" found in corpus: ";
-					// 	// 	cout<<"SentId="<<locations[i].sentIdInCorpus<<" Pos="<<(int)locations[i].posInSentInCorpus << endl;
-					// 	// }
-					// 	start = (int)locations[i].posEndInSrcSent;
-					// 	CurrStart = startPos+(int)(locations[i].posEndInSrcSent);
-					// }
-					//S_phraseLocationElement& elt = SA.findPhrasesInASentence(l_ngram.toString())[0];
-					// cout <<" POS:"     << elt.sentIdInCorpus ;
-					// cout <<" , Start:" << (int)(elt.posStartInSrcSent) ;
-					// cout <<" , End  :" << (int)(elt.posEndInSrcSent) ;
-					// cout <<" , InSent:" <<(int)(elt.posInSentInCorpus)<< endl;
-					//CurrStart = startPos+(int)(elt.posEndInSrcSent);
-					DiffLen = (sentLen-startPos);
-					//cout<<" N-gram ["<<(int)locations[selID].posStartInSrcSent<<", "<<(int)locations[selID].posEndInSrcSent<<"]: ";
-					//cout<<" found in corpus: ";
-					//cout<<"SentId="<<locations[selID].sentIdInCorpus<<" Doc Name:";
-					//cout <<l_ngram.toString()<<" ["<< word_count(l_ngram.toString()) << ", "<< l_frequency << ", "; //", n:"<< n <<", Len:"<< sentLen<< ", Strt:"<< startPos<< ", Diff:"<<(sentLen-startPos)<< ", Flag:"<<CurrStart<< endl;
 					iterline2Doc = line2Doc.find(locations[selID].sentIdInCorpus);
 					if(verbosity) {
 						cout <<l_ngram.toString()<<" ["<< word_count(l_ngram.toString()) << ", "<< l_frequency << ", n:"<< n <<", Len:"<< sentLen<< ", Strt:"<< startPos<< ", Diff:"<<(sentLen-startPos)<< ", Flag:"<<CurrStart<< " "; // << endl;
@@ -337,13 +305,13 @@ int main(int argc, char* argv[]){
 		
 	} // While
  
+ 	//
+ 	// Output sorted list AAA
+ 	//
+
 	std::vector<std::pair<C_String, double> > items;
-	//...
-	
 	items = SortMap2Vec(FoundFreq);
-
 	std::vector<std::pair<C_String,double> >::const_iterator it;
-
 	for(it=items.begin(); it!=items.end(); ++it)
 		cout << "Document[" <<(it->first).toString()  <<"] = " <<   it->second << endl;
 
